@@ -4,7 +4,7 @@ import * as THREE from "three";
 export class SceneBuilder implements ISceneBuilder {
     readonly camera: THREE.PerspectiveCamera;
 
-    private cube?: THREE.Mesh;
+    private cube!: THREE.Mesh;
 
     constructor() {
         this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
@@ -35,10 +35,8 @@ export class SceneBuilder implements ISceneBuilder {
     }
 
     update() {
-        if (this.cube) {
-            this.cube.rotation.x += 0.01;
+        this.cube.rotation.x += 0.01;
 
-            this.cube.rotation.y += 0.01;
-        }
+        this.cube.rotation.y += 0.01;
     }
 }

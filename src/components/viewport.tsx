@@ -4,9 +4,9 @@ import { FunctionComponent, useEffect, useRef } from "react";
 import styles from "./viewport.module.css";
 
 export interface IViewportRenderer {
-    render(container: Element): Promise<void>;
+    animate(container: Element): void;
 
-    resize(container: Element): void;
+    resize(): void;
 
     dispose(): void;
 }
@@ -25,18 +25,14 @@ const Viewport: FunctionComponent<Props> = ({ renderer }) => {
             return;
         }
 
-        renderer.resize(container);
+        const resize = renderer.resize.bind(renderer);
 
-        const resizeEventListener = () => {
-            renderer.resize(container);
-        };
+        window.addEventListener("resize", resize);
 
-        window.addEventListener("resize", resizeEventListener);
-
-        renderer.render(container);
+        renderer.animate(container);
 
         return () => {
-            window.removeEventListener("resize", resizeEventListener);
+            window.removeEventListener("resize", resize);
 
             renderer.dispose();
         };

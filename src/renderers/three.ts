@@ -3,9 +3,11 @@ import { ISceneBuilder } from ".";
 import { IViewportRenderer } from "@/components/viewport";
 
 export class ThreeRenderer implements IViewportRenderer {
-    private scene?: THREE.Scene;
+    protected scene = new THREE.Scene();
 
-    private renderer?: THREE.WebGLRenderer;
+    protected renderer!: THREE.WebGLRenderer;
+
+    private handle?: number;
 
     protected sceneBuilder: ISceneBuilder;
 
@@ -13,53 +15,71 @@ export class ThreeRenderer implements IViewportRenderer {
         this.sceneBuilder = sceneBuilder;
     }
 
-    protected getRenderer(): THREE.WebGLRenderer {
-        if (this.renderer) {
-            return this.renderer;
-        }
+    async animate(container: Element) {
+        this.renderer = this.createRenderer();
 
-        this.renderer = new THREE.WebGLRenderer();
+        container.appendChild(this.renderer.domElement);
 
-        return this.renderer;
+        this.resizeRenderer();
+
+        await this.build();
+
+        this.loop();
     }
 
-    async render(container: Element) {
-        this.scene = new THREE.Scene();
+    protected createRenderer() {
+        const renderer = new THREE.WebGLRenderer();
 
-        await this.sceneBuilder.build(this.scene);
+        renderer.setClearColor(new THREE.Color(1, 1, 1));
 
-        container.appendChild(this.getRenderer().domElement);
-
-        this.animate();
+        return renderer;
     }
 
-    protected animate() {
-        if (!this.scene) {
+    protected resizeRenderer() {
+        const parent = this.renderer.domElement.parentElement;
+
+        if (!parent) {
             return;
         }
 
-        requestAnimationFrame(this.animate.bind(this));
+        const { clientWidth, clientHeight } = parent;
 
-        this.sceneBuilder.update(this.scene);
-
-        this.getRenderer().render(this.scene, this.sceneBuilder.camera);
-    }
-
-    resize(container: Element) {
-        const { clientWidth: width, clientHeight: height } = container;
+        this.renderer.setSize(clientWidth, clientHeight);
 
         const camera = this.sceneBuilder.camera;
 
         if (camera instanceof THREE.PerspectiveCamera) {
-            camera.aspect = width / height;
+            camera.aspect = clientWidth / clientHeight;
 
             camera.updateProjectionMatrix();
         }
+    }
 
-        this.getRenderer().setSize(width, height);
+    protected async build() {
+        await this.sceneBuilder.build(this.scene);
+    }
+
+    protected loop() {
+        this.handle = requestAnimationFrame(this.loop.bind(this));
+
+        this.sceneBuilder.update(this.scene);
+
+        this.render();
+    }
+
+    protected render() {
+        this.renderer.render(this.scene, this.sceneBuilder.camera);
+    }
+
+    resize() {
+        this.resizeRenderer();
     }
 
     dispose() {
-        this.getRenderer().domElement.remove();
+        if (this.handle) {
+            cancelAnimationFrame(this.handle);
+        }
+
+        this.renderer.domElement.remove();
     }
 }
